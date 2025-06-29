@@ -1,0 +1,47 @@
+[2025-06-28T01:21:36.111Z] Loading environment...
+[2025-06-28T01:21:36.115Z] Environment:
+[2025-06-28T01:21:36.115Z] - NODE_ENV: development
+[2025-06-28T01:21:36.115Z] - NEXT_PUBLIC_SITE_URL: http://localhost:3000
+[2025-06-28T01:21:36.116Z] - NEXT_PUBLIC_SUPABASE_URL: Set
+[2025-06-28T01:21:36.116Z] - NEXT_PUBLIC_SUPABASE_ANON_KEY: Set
+[2025-06-28T01:21:36.116Z] 
+Initializing Supabase client...
+[2025-06-28T01:21:36.118Z] 
+🚀 Starting authentication tests...
+[2025-06-28T01:21:36.118Z] 
+🔐 Testing authentication...
+[2025-06-28T01:21:36.118Z] 
+🔍 Testing getSession()...
+[2025-06-28T01:21:36.120Z] Current session: No active session
+[2025-06-28T01:21:36.120Z] 
+🔑 Testing github OAuth...
+[2025-06-28T01:21:36.120Z] Using redirect URL: http://localhost:3000/auth/callback
+[2025-06-28T01:21:36.120Z] 
+1. Generating OAuth URL...
+[2025-06-28T01:21:36.121Z] ✅ github OAuth URL generated successfully
+[2025-06-28T01:21:36.121Z] OAuth URL: https://uqjvgkqmkvhppqxkacjh.supabase.co/auth/v1/authorize?provider=github&redirect_to=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fcallback&access_type=offline&prompt=consent
+[2025-06-28T01:21:36.121Z] 
+🔗 Testing URL accessibility...
+[2025-06-28T01:21:36.508Z] ⚠️ URL access test failed: {
+  "message": "Request failed with status code 405",
+  "status": 405,
+  "headers": {
+    "date": "Sat, 28 Jun 2025 01:21:36 GMT",
+    "connection": "keep-alive",
+    "cf-ray": "95695e498f9916d2-IAH",
+    "cf-cache-status": "DYNAMIC",
+    "allow": "GET",
+    "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+    "vary": "Origin, Accept-Encoding",
+    "sb-gateway-version": "1",
+    "sb-project-ref": "uqjvgkqmkvhppqxkacjh",
+    "x-content-type-options": "nosniff",
+    "x-envoy-attempt-count": "1",
+    "x-envoy-upstream-service-time": "1",
+    "set-cookie": "__cf_bm=98IZIIHXdBpS.yy4U4FwWWj6kGlKJ8Gl0_Ddj9UH5.g-1751073696-1.0.1.1-efLW2eV.npabo_QbS2kl_8XQ35oTxScO_wxRpw.Byk0BDwpkFRmzB0iaNjroajVmF.xP7l_kV.nSnTDqCFOcxCQoPBDJFfrE5zmqTpZLy3s; path=/; expires=Sat, 28-Jun-25 01:51:36 GMT; domain=.supabase.co; HttpOnly; Secure; SameSite=None",
+    "server": "cloudflare",
+    "alt-svc": "h3=\":443\"; ma=86400"
+  }
+}
+[2025-06-28T01:21:36.509Z] 
+✅ Tests completed. Check auth-debug.log for full details.
