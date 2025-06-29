@@ -1,0 +1,137 @@
+// app/auth/callback/route.ts
+import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import type { Database } from '@/types/database.types'
+
+export async function GET(request: Request) {
+  const { searchParams, origin } = new URL(request.url)
+  const code  = searchParams.get('code')
+  const next  = searchParams.get('next') ?? '/dashboard'
+
+  if (!code) return NextResponse.redirect(new URL('/auth?error=missing_code', origin))
+
+  // create Supabase client and make cookies accessible to the browser (disable httpOnly)
+  // Clean up quoted code verifier value if present so Supabase validation passes
+  const cv = cookies().get('sb-code-verifier')?.value
+  if (cv && cv.startsWith('"') && cv.endsWith('"')) {
+    cookies().set('sb-code-verifier', cv.slice(1, -1), {
+      path: '/',
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 10, // 10 minutes just like Supabase default
+    })
+  }
+
+  // create Supabase client and make cookies accessible to the browser (disable httpOnly)
+  const supabase = createRouteHandlerClient<Database>({ cookies })
+  // force storageKey so auth client looks for 'sb-*' cookies
+  ;(supabase.auth as any).storageKey = 'sb'
+
+  // Log cookies received on callback for debugging
+  const verifier = cookies().get('sb-code-verifier')?.value
+  console.log('callback cookies', cookies().getAll().map(c => ({ name: c.name, len: c.value?.length, preview: c.value?.slice(0, 20) })));
+  console.log('auth code length', code.length, 'verifier length', verifier?.length)
+
+
+  // exchange auth code for a session with verifier (internal API) and log the result
+  // Manually call Supabase PKCE token endpoint so we can provide code_verifier explicitly
+  try {
+    const tokenRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/token?grant_type=pkce`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
+        'X-Client-Info': 'supawobble-nextjs',
+      },
+      body: JSON.stringify({
+        auth_code: code,
+        code_verifier: verifier,
+      }),
+    })
+
+    const tokenJson = await tokenRes.json()
+    console.log('token endpoint response', tokenJson)
+
+    if (!tokenRes.ok) {
+      throw new Error(tokenJson.error_description || 'Token exchange failed')
+    }
+
+    const { access_token, refresh_token, expires_in } = tokenJson
+    const now = Math.floor(Date.now() / 1000)
+    const expires_at = now + (expires_in || 3600) // Default to 1 hour if not provided
+    
+    // Log the session data before setting it
+    console.log('Setting session with:', {
+      access_token: access_token?.substring(0, 50) + '...',
+      refresh_token: refresh_token?.substring(0, 10) + '...',
+      expires_in,
+      expires_at,
+      now
+    });
+
+    // Create a complete session object with all required fields
+    const session = {
+      access_token,
+      refresh_token,
+      expires_in,
+      expires_at,
+      token_type: 'bearer',
+      user: null // Will be populated by Supabase
+    };
+
+    console.log('Setting session with data:', {
+      access_token: access_token?.substring(0, 10) + '...',
+      refresh_token: refresh_token?.substring(0, 10) + '...',
+      expires_in,
+      expires_at,
+      now: Math.floor(Date.now() / 1000)
+    });
+
+    try {
+      // Set session in cookies using the complete session object
+      const { data: sessionData, error: sessionError } = await supabase.auth.setSession(session);
+      
+      if (sessionError) {
+        console.error('Error setting session:', sessionError);
+        throw sessionError;
+      }
+      
+      // Force update the session storage to ensure proper structure
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      console.log('Current session after setSession:', {
+        access_token: currentSession?.access_token?.substring(0, 10) + '...',
+        refresh_token: currentSession?.refresh_token?.substring(0, 10) + '...',
+        expires_at: currentSession?.expires_at,
+        expires_in: currentSession?.expires_in,
+        now: Math.floor(Date.now() / 1000)
+      });
+
+      if (!currentSession) {
+        throw new Error('Failed to get session after setting it');
+      }
+    } catch (error) {
+      console.error('Error in session handling:', error);
+      const url = new URL('/auth/login', request.url);
+      url.searchParams.set('error', 'session_set_failed');
+      return NextResponse.redirect(url);
+    }
+
+    // Verify the session was set correctly
+    const { data: sessionData } = await supabase.auth.getSession();
+    const currentSession = sessionData?.session;
+    console.log('Current session after setSession:', {
+      hasSession: !!currentSession,
+      expiresAt: currentSession?.expires_at,
+      expiresIn: currentSession?.expires_in,
+      user: currentSession?.user?.id
+    });
+
+    // redirect the user to the intended next page
+    return NextResponse.redirect(new URL(next.startsWith('/') ? next : `/${next}`, origin))
+  } catch (err) {
+    console.error('PKCE token exchange error', err)
+    return NextResponse.redirect(new URL('/auth?error=token_exchange', origin))
+  }
+
+}
