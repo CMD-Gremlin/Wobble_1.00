@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@langchain/community": "^0.3.47",
+    
     "@langchain/openai": "^0.5.16",
     "@sentry/nextjs": "^7.91.0",
     "@sentry/node": "^7.91.0",
